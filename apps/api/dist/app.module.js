@@ -18,6 +18,7 @@ const auth_module_1 = require("./auth/auth.module");
 const redis_module_1 = require("./redis/redis.module");
 const admin_module_1 = require("./admin/admin.module");
 const sp_module_1 = require("./sp/sp.module");
+const oauth_module_1 = require("./oauth/oauth.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -32,6 +33,7 @@ exports.AppModule = AppModule = __decorate([
             redis_module_1.RedisModule,
             admin_module_1.AdminModule,
             sp_module_1.SpModule,
+            oauth_module_1.OauthModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [app_service_1.AppService],

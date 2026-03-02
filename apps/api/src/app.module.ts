@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { RedisModule } from './redis/redis.module';
 import { AdminModule } from './admin/admin.module';
 import { SpModule } from './sp/sp.module';
+import { OauthModule } from './oauth/oauth.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { SpModule } from './sp/sp.module';
     RedisModule,
     AdminModule,
     SpModule,
+    OauthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

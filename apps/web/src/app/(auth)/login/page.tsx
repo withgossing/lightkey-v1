@@ -1,14 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginForm() {
     const [employeeId, setEmployeeId] = useState('');
     const [password, setPassword] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -24,8 +25,25 @@ export default function LoginPage() {
                 throw new Error(response.error || 'Login failed');
             }
 
-            // Backend returns a success message and sets an HttpOnly cookie
-            router.push('/dashboard');
+            const redirectUri = searchParams.get('redirect_uri');
+            const clientId = searchParams.get('client_id');
+            const responseType = searchParams.get('response_type');
+            const state = searchParams.get('state');
+
+            if (redirectUri && clientId && responseType === 'code') {
+                // Determine target API URL
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:18003';
+                let authorizeUrl = `${apiUrl}/api/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+                if (state) {
+                    authorizeUrl += `&state=${encodeURIComponent(state)}`;
+                }
+
+                // Navigate via standard location assignment to jump out of Next.js router boundaries into the external API redirect loop
+                window.location.href = authorizeUrl;
+            } else {
+                // Regular Dashboard Login
+                router.push('/dashboard');
+            }
         } catch (error: unknown) {
             if (error instanceof Error) {
                 setErrorMsg(error.message);
@@ -145,5 +163,13 @@ export default function LoginPage() {
                 </form>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+            <LoginForm />
+        </Suspense>
     );
 }

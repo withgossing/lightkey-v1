@@ -25,6 +25,17 @@ let SpService = class SpService {
     async findByClientId(clientId) {
         return this.spRepository.findOne({ where: { clientId } });
     }
+    async validateClientCredentials(clientId, clientSecret) {
+        const sp = await this.findByClientId(clientId);
+        if (!sp || !sp.clientSecretHash) {
+            return null;
+        }
+        const isMatch = sp.clientSecretHash === clientSecret;
+        if (isMatch) {
+            return sp;
+        }
+        return null;
+    }
 };
 exports.SpService = SpService;
 exports.SpService = SpService = __decorate([
