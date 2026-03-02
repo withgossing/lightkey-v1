@@ -1,0 +1,119 @@
+# SSO 시스템 개발 및 운영 환경 구성을 위한 Docker Compose
+
+version: '3.8'
+
+services:
+  # --------------------------------------------------------------------------
+  # 1. Database: PostgreSQL v18 (사원 정보 및 OAuth 클라이언트 메인 DB)
+  # --------------------------------------------------------------------------
+  sso-db:
+    image: postgres:18-alpine
+    container_name: sso-db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lightkey}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lightkey123!}
+      POSTGRES_DB: ${POSTGRES_DB:-lightkey_sso}
+      TZ: Asia/Seoul
+    ports:
+      - "${DB_PORT:-18001}:5432"
+    volumes:
+      - sso-db-data:/var/lib/postgresql/data
+    networks:
+      - sso-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lightkey} -d ${POSTGRES_DB:-lightkey_sso}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --------------------------------------------------------------------------
+  # 2. In-Memory Store: Redis v8 (세션 관리 및 토큰 블랙리스트 등)
+  # --------------------------------------------------------------------------
+  sso-redis:
+    image: redis:8-alpine
+    container_name: sso-redis
+    restart: always
+    ports:
+      - "${REDIS_PORT:-18002}:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_sso_pass!} --appendonly yes
+    volumes:
+      - sso-redis-data:/data
+    networks:
+      - sso-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis_sso_pass!}", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --------------------------------------------------------------------------
+  # 3. Backend: NestJS v11 (SSO/IdP 인증 서버, API)
+  # --------------------------------------------------------------------------
+  sso-api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+      target: development # 개발 시에는 소스매핑 및 핫리로드 등을 위한 target 분리 고려 가능
+    container_name: sso-api
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-18003}:18003" # 호스트 포트 및 컨테이너 내부 포트 모두 매핑
+    environment:
+      - PORT=18003
+      - NODE_ENV=development
+      - DB_HOST=sso-db
+      - DB_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-lightkey}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-lightkey123!}
+      - POSTGRES_DB=${POSTGRES_DB:-lightkey_sso}
+      - REDIS_HOST=sso-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_sso_pass!}
+      - JWT_SECRET=${JWT_SECRET:-super_secret_jwt_key}
+    depends_on:
+      sso-db:
+        condition: service_healthy
+      sso-redis:
+        condition: service_healthy
+    volumes:
+      # 로컬 개발 시 소스코드 동기화
+      - ./apps/api:/usr/src/app
+      - /usr/src/app/node_modules
+    networks:
+      - sso-network
+
+  # --------------------------------------------------------------------------
+  # 4. Frontend: Next.js v16 (통합 로그인 및 대시보드 웹앱)
+  # --------------------------------------------------------------------------
+  sso-web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      target: development
+    container_name: sso-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-18004}:18004" # 커스텀 포트 매핑
+    environment:
+      - PORT=18004
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:${API_PORT:-18003} # 클라이언트가 API 호출할 때 쓸 URL
+    depends_on:
+      - sso-api
+    volumes:
+      # 로컬 개발 시 소스코드 동기화
+      - ./apps/web:/usr/src/app
+      - /usr/src/app/node_modules
+      - /usr/src/app/.next
+    networks:
+      - sso-network
+
+volumes:
+  sso-db-data:
+  sso-redis-data:
+
+
+networks:
+  sso-network:
+    driver: bridge
