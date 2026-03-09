@@ -60,7 +60,18 @@ let UsersService = class UsersService {
         return this.userRepository.findOne({ where: { employeeId } });
     }
     async findById(id) {
-        return this.userRepository.findOne({ where: { id } });
+        return this.userRepository.findOne({ where: { id }, relations: ['roles'] });
+    }
+    async findAll() {
+        return this.userRepository.find({ relations: ['roles'] });
+    }
+    async unlockUser(id) {
+        const user = await this.findById(id);
+        if (!user)
+            return null;
+        user.isLocked = false;
+        user.failedLoginAttempts = 0;
+        return this.userRepository.save(user);
     }
     async createManualUser(employeeId, email, initialPassword) {
         const existingUser = await this.findByEmployeeId(employeeId);

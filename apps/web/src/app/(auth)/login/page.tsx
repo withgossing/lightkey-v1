@@ -32,7 +32,7 @@ function LoginForm() {
 
             if (redirectUri && clientId && responseType === 'code') {
                 // Determine target API URL
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:18003';
+                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:18002';
                 let authorizeUrl = `${apiUrl}/api/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}`;
                 if (state) {
                     authorizeUrl += `&state=${encodeURIComponent(state)}`;

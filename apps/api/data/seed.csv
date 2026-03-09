@@ -1,0 +1,3 @@
+employeeId,email,initialPassword,role
+1001,user1001@lightkey.test,1001,ROLE_USER
+10001,qa@lightkey.test,10001,ROLE_ADMIN

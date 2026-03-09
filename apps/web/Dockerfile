@@ -28,9 +28,9 @@ WORKDIR /usr/src/app
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
-# 포트는 커스텀 포트 환경변수 또는 18004
-EXPOSE 18004
-ENV PORT 18004
+# 포트는 커스텀 포트 환경변수 또는 18003
+EXPOSE 18003
+ENV PORT 18003
 CMD ["npm", "run", "dev"]
 
 # Production image
@@ -44,7 +44,7 @@ COPY --from=builder /usr/src/app/.next ./.next
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package.json ./package.json
 
-EXPOSE 18004
-ENV PORT 18004
+EXPOSE 18003
+ENV PORT 18003
 
 CMD ["node", "node_modules/next/dist/bin/next", "start"]

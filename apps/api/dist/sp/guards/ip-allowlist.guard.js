@@ -57,7 +57,8 @@ let IpAllowlistGuard = IpAllowlistGuard_1 = class IpAllowlistGuard {
         const request = context.switchToHttp().getRequest();
         const clientIpStr = request.ip || request.connection.remoteAddress;
         const clientId = request.headers['x-client-id'] ||
-            request.query['client_id'];
+            request.query['client_id'] ||
+            request.body?.client_id;
         if (!clientId) {
             this.logger.warn('IP Allowlist Check Failed: Missing client_id in request');
             throw new common_1.ForbiddenException('Missing Client ID for Service Provider validation');

@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:18003';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:18002';
 
 export async function loginAction(employeeId: string, password: string) {
     try {

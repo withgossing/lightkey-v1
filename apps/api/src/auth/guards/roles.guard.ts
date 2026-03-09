@@ -4,7 +4,7 @@ import { Request } from 'express';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<string[]>('roles', [
@@ -25,6 +25,8 @@ export class RolesGuard implements CanActivate {
     }
 
     // Check if the user has any of the required roles
-    return requiredRoles.some((role) => user.roles.includes(role));
+    return requiredRoles.some((requiredRole) =>
+      user.roles.some((roleObj: any) => roleObj.name === requiredRole)
+    );
   }
 }

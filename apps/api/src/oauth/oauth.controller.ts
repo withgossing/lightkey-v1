@@ -36,11 +36,11 @@ export class OauthController {
 
         try {
             // 사용자 객체는 JwtAuthGuard 통과 시 req.user에 주입됩니다.
-            const user = req.user as { userId: string } | undefined;
-            if (!user || !user.userId) {
+            const user = req.user as { id: string } | undefined;
+            if (!user || !user.id) {
                 return res.status(401).json({ error: 'unauthorized', message: 'User not authenticated' });
             }
-            const userId = user.userId;
+            const userId = user.id;
 
             // 인가 코드 발급 요청
             const code = await this.oauthService.generateAuthorizationCode(userId, clientId, redirectUri);

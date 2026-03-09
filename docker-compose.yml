@@ -16,7 +16,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-lightkey_sso}
       TZ: Asia/Seoul
     ports:
-      - "${DB_PORT:-18001}:5432"
+      - "18001:5432"
     volumes:
       - sso-db-data:/var/lib/postgresql/data
     networks:
@@ -28,7 +28,6 @@ services:
       retries: 5
 
   # --------------------------------------------------------------------------
-  # 2. In-Memory Store: Redis v8 (세션 관리 및 토큰 블랙리스트 등)
   # --------------------------------------------------------------------------
   sso-redis:
     image: redis:8-alpine
@@ -58,23 +57,18 @@ services:
     container_name: sso-api
     restart: unless-stopped
     ports:
-      - "${API_PORT:-18003}:18003" # 호스트 포트 및 컨테이너 내부 포트 모두 매핑
+      - "${API_PORT:-18002}:18002" # 호스트 포트 및 컨테이너 내부 포트 모두 매핑
     environment:
-      - PORT=18003
+      - PORT=18002
       - NODE_ENV=development
       - DB_HOST=sso-db
       - DB_PORT=5432
       - POSTGRES_USER=${POSTGRES_USER:-lightkey}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-lightkey123!}
       - POSTGRES_DB=${POSTGRES_DB:-lightkey_sso}
-      - REDIS_HOST=sso-redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis_sso_pass!}
       - JWT_SECRET=${JWT_SECRET:-super_secret_jwt_key}
     depends_on:
       sso-db:
-        condition: service_healthy
-      sso-redis:
         condition: service_healthy
     volumes:
       # 로컬 개발 시 소스코드 동기화
@@ -94,11 +88,11 @@ services:
     container_name: sso-web
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-18004}:18004" # 커스텀 포트 매핑
+      - "${WEB_PORT:-18003}:18003" # 커스텀 포트 매핑
     environment:
-      - PORT=18004
+      - PORT=18003
       - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:${API_PORT:-18003} # 클라이언트가 API 호출할 때 쓸 URL
+      - NEXT_PUBLIC_API_URL=http://localhost:${API_PORT:-18002} # 클라이언트가 API 호출할 때 쓸 URL
     depends_on:
       - sso-api
     volumes:
@@ -111,7 +105,6 @@ services:
 
 volumes:
   sso-db-data:
-  sso-redis-data:
 
 
 networks:

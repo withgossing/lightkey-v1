@@ -32,7 +32,7 @@ let RolesGuard = class RolesGuard {
         if (!user || user.roles === undefined || !Array.isArray(user.roles)) {
             return false;
         }
-        return requiredRoles.some((role) => user.roles.includes(role));
+        return requiredRoles.some((requiredRole) => user.roles.some((roleObj) => roleObj.name === requiredRole));
     }
 };
 exports.RolesGuard = RolesGuard;

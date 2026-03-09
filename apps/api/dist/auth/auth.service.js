@@ -44,9 +44,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 var AuthService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
@@ -54,20 +51,21 @@ const common_1 = require("@nestjs/common");
 const jwt_1 = require("@nestjs/jwt");
 const config_1 = require("@nestjs/config");
 const bcrypt = __importStar(require("bcrypt"));
-const ioredis_1 = __importDefault(require("ioredis"));
 const users_service_1 = require("../users/users.service");
-const redis_module_1 = require("../redis/redis.module");
+const typeorm_1 = require("@nestjs/typeorm");
+const typeorm_2 = require("typeorm");
+const auth_session_entity_1 = require("./entities/auth-session.entity");
 let AuthService = AuthService_1 = class AuthService {
     usersService;
     jwtService;
     configService;
-    redisClient;
+    authSessionRepository;
     logger = new common_1.Logger(AuthService_1.name);
-    constructor(usersService, jwtService, configService, redisClient) {
+    constructor(usersService, jwtService, configService, authSessionRepository) {
         this.usersService = usersService;
         this.jwtService = jwtService;
         this.configService = configService;
-        this.redisClient = redisClient;
+        this.authSessionRepository = authSessionRepository;
     }
     async validateUser(employeeId, pass) {
         const user = await this.usersService.findByEmployeeId(employeeId);
@@ -96,24 +94,33 @@ let AuthService = AuthService_1 = class AuthService {
         const refreshToken = this.jwtService.sign(payload, {
             expiresIn: refreshExpiresIn,
         });
-        await this.redisClient.set(`refresh_token:${user.id}`, refreshToken, 'EX', 60 * 60 * 24 * 7);
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+        const tokenHash = await bcrypt.hash(refreshToken, 10);
+        await this.authSessionRepository.delete({ userId: user.id });
+        const session = this.authSessionRepository.create({
+            userId: user.id,
+            tokenHash,
+            expiresAt,
+        });
+        await this.authSessionRepository.save(session);
         return {
             accessToken,
             refreshToken,
         };
     }
     async logout(userId) {
-        await this.redisClient.del(`refresh_token:${userId}`);
+        await this.authSessionRepository.delete({ userId });
         this.logger.log(`User logged out, refresh token evicted: ${userId}`);
     }
 };
 exports.AuthService = AuthService;
 exports.AuthService = AuthService = AuthService_1 = __decorate([
     (0, common_1.Injectable)(),
-    __param(3, (0, common_1.Inject)(redis_module_1.REDIS_CLIENT)),
+    __param(3, (0, typeorm_1.InjectRepository)(auth_session_entity_1.AuthSession)),
     __metadata("design:paramtypes", [users_service_1.UsersService,
         jwt_1.JwtService,
         config_1.ConfigService,
-        ioredis_1.default])
+        typeorm_2.Repository])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

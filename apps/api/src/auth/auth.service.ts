@@ -7,10 +7,12 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import Redis from 'ioredis';
 import { UsersService } from '../users/users.service';
-import { REDIS_CLIENT } from '../redis/redis.module';
 import { User } from '../users/entities/user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AuthSession } from './entities/auth-session.entity';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
@@ -20,7 +22,8 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    @Inject(REDIS_CLIENT) private readonly redisClient: Redis,
+    @InjectRepository(AuthSession)
+    private readonly authSessionRepository: Repository<AuthSession>,
   ) { }
 
   async validateUser(employeeId: string, pass: string): Promise<User | null> {
@@ -65,14 +68,24 @@ export class AuthService {
       expiresIn: refreshExpiresIn,
     } as any);
 
-    // Store refresh token in Redis (Whitelist)
-    // Expiration set to roughly 7 days in seconds
-    await this.redisClient.set(
-      `refresh_token:${user.id}`,
-      refreshToken,
-      'EX',
-      60 * 60 * 24 * 7,
-    );
+    // Store refresh token in PostgreSQL (Whitelist)
+    // Expiration set to roughly 7 days
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    // In a real app we might hash this, but we'll store literal for now 
+    // to match previous simple string approach, or a hash to be more secure.
+    const tokenHash = await bcrypt.hash(refreshToken, 10);
+
+    // Clear old session
+    await this.authSessionRepository.delete({ userId: user.id });
+
+    const session = this.authSessionRepository.create({
+      userId: user.id,
+      tokenHash,
+      expiresAt,
+    });
+    await this.authSessionRepository.save(session);
 
     return {
       accessToken,
@@ -81,7 +94,7 @@ export class AuthService {
   }
 
   async logout(userId: string) {
-    await this.redisClient.del(`refresh_token:${userId}`);
+    await this.authSessionRepository.delete({ userId });
     this.logger.log(`User logged out, refresh token evicted: ${userId}`);
   }
 }

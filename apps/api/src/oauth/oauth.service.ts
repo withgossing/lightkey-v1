@@ -1,14 +1,16 @@
-import { Injectable, UnauthorizedException, NotFoundException, Inject } from '@nestjs/common';
-import Redis from 'ioredis';
+import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { SpService } from '../sp/sp.service';
 import { v4 as uuidv4 } from 'uuid';
-import { REDIS_CLIENT } from '../redis/redis.module';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { AuthCode } from '../auth/entities/auth-code.entity';
 
 @Injectable()
 export class OauthService {
     constructor(
-        @Inject(REDIS_CLIENT) private readonly redis: Redis,
+        @InjectRepository(AuthCode)
+        private readonly authCodeRepository: Repository<AuthCode>,
         private readonly spService: SpService,
         private readonly jwtService: JwtService,
     ) { }
@@ -30,9 +32,17 @@ export class OauthService {
         // 2. 인가 코드 생성 (랜덤 UUID)
         const code = uuidv4();
 
-        // 3. Redis 저장 (TTL: 5분 = 300초)
-        const payload = JSON.stringify({ userId, clientId, redirectUri });
-        await this.redis.set(`auth_code:${code}`, payload, 'EX', 300);
+        // 3. PostgreSQL 저장 (만료: 5분 후)
+        const payload = { userId, clientId, redirectUri };
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 5);
+
+        const authCodeRow = this.authCodeRepository.create({
+            code,
+            payload,
+            expiresAt,
+        });
+        await this.authCodeRepository.save(authCodeRow);
 
         return code;
     }
@@ -47,18 +57,23 @@ export class OauthService {
             throw new UnauthorizedException('Invalid client credentials');
         }
 
-        // 2. Redis에서 인가 코드 검증 및 즉시 파기 (One-time use)
-        const redisKey = `auth_code:${code}`;
-        const payloadStr = await this.redis.get(redisKey);
+        // 2. PostgreSQL에서 인가 코드 검증 및 즉시 파기 (One-time use)
+        const authCodeRow = await this.authCodeRepository.findOne({ where: { code } });
 
-        if (!payloadStr) {
+        if (!authCodeRow) {
             throw new UnauthorizedException('Invalid or expired authorization code');
         }
 
-        // 보안 원칙 1: 인가 코드는 1회용이어야 하므로 조회 즉시 삭제!
-        await this.redis.del(redisKey);
+        // 보안 원칙: 만료시간 검증
+        if (new Date() > authCodeRow.expiresAt) {
+            await this.authCodeRepository.remove(authCodeRow); // 파기
+            throw new UnauthorizedException('Authorization code expired');
+        }
 
-        const payload = JSON.parse(payloadStr);
+        // 보안 원칙 1: 인가 코드는 1회용이어야 하므로 조회 직후 삭제!
+        await this.authCodeRepository.remove(authCodeRow);
+
+        const payload = authCodeRow.payload;
 
         // 3. 요청 정보 무결성 검증
         if (payload.clientId !== clientId || payload.redirectUri !== redirectUri) {

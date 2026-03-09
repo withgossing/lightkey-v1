@@ -25,8 +25,8 @@ WORKDIR /usr/src/app
 COPY --from=deps /usr/src/app/node_modules ./node_modules
 COPY . .
 
-# 실행 포트는 커스텀 포트 환경변수 또는 18003
-EXPOSE 18003
+# 실행 포트는 커스텀 포트 환경변수 또는 18002
+EXPOSE 18002
 CMD ["npm", "run", "start:dev"]
 
 # Production image, copy all the files and run next
@@ -37,5 +37,5 @@ ENV NODE_ENV production
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/dist ./dist
 
-EXPOSE 18003
+EXPOSE 18002
 CMD ["node", "dist/main"]

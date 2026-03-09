@@ -31,10 +31,10 @@ let OauthController = class OauthController {
         }
         try {
             const user = req.user;
-            if (!user || !user.userId) {
+            if (!user || !user.id) {
                 return res.status(401).json({ error: 'unauthorized', message: 'User not authenticated' });
             }
-            const userId = user.userId;
+            const userId = user.id;
             const code = await this.oauthService.generateAuthorizationCode(userId, clientId, redirectUri);
             let redirectUrl = `${redirectUri}?code=${code}`;
             if (state) {

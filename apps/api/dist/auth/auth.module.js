@@ -14,12 +14,16 @@ const auth_service_1 = require("./auth.service");
 const auth_controller_1 = require("./auth.controller");
 const users_module_1 = require("../users/users.module");
 const jwt_strategy_1 = require("./strategies/jwt.strategy");
+const typeorm_1 = require("@nestjs/typeorm");
+const auth_session_entity_1 = require("./entities/auth-session.entity");
+const auth_code_entity_1 = require("./entities/auth-code.entity");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            typeorm_1.TypeOrmModule.forFeature([auth_session_entity_1.AuthSession, auth_code_entity_1.AuthCode]),
             users_module_1.UsersModule,
             jwt_1.JwtModule.registerAsync({
                 imports: [config_1.ConfigModule],

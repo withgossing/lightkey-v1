@@ -7,7 +7,6 @@ import { DatabaseModule } from './database/database.module';
 import { SyncModule } from './sync/sync.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { RedisModule } from './redis/redis.module';
 import { AdminModule } from './admin/admin.module';
 import { SpModule } from './sp/sp.module';
 import { OauthModule } from './oauth/oauth.module';
@@ -19,7 +18,6 @@ import { OauthModule } from './oauth/oauth.module';
     ScheduleModule.forRoot(),
     UsersModule,
     AuthModule,
-    RedisModule,
     AdminModule,
     SpModule,
     OauthModule,
@@ -27,4 +25,4 @@ import { OauthModule } from './oauth/oauth.module';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

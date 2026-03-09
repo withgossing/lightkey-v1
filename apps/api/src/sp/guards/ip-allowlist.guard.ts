@@ -13,7 +13,7 @@ import { SpService } from '../sp.service';
 export class IpAllowlistGuard implements CanActivate {
   private readonly logger = new Logger(IpAllowlistGuard.name);
 
-  constructor(private readonly spService: SpService) {}
+  constructor(private readonly spService: SpService) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -25,7 +25,8 @@ export class IpAllowlistGuard implements CanActivate {
     // depending on the exact OAuth/OIDC flow step
     const clientId =
       (request.headers['x-client-id'] as string) ||
-      (request.query['client_id'] as string);
+      (request.query['client_id'] as string) ||
+      (request.body?.client_id as string);
 
     if (!clientId) {
       // If there's no client ID, this route might not be SP-specific,

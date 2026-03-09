@@ -12,12 +12,14 @@ const typeorm_1 = require("@nestjs/typeorm");
 const sp_service_1 = require("./sp.service");
 const service_provider_entity_1 = require("./entities/service-provider.entity");
 const ip_allowlist_guard_1 = require("./guards/ip-allowlist.guard");
+const sp_controller_1 = require("./sp.controller");
 let SpModule = class SpModule {
 };
 exports.SpModule = SpModule;
 exports.SpModule = SpModule = __decorate([
     (0, common_1.Module)({
         imports: [typeorm_1.TypeOrmModule.forFeature([service_provider_entity_1.ServiceProvider])],
+        controllers: [sp_controller_1.SpController],
         providers: [sp_service_1.SpService, ip_allowlist_guard_1.IpAllowlistGuard],
         exports: [sp_service_1.SpService, ip_allowlist_guard_1.IpAllowlistGuard],
     })
