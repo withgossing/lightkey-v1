@@ -1,0 +1,60 @@
+name: Lightkey SSO CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  build-and-test:
+    name: Build & Test (NestJS & Next.js)
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [24.x] # Aligning with the Node 24 requirement in architecture documents
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    # 1. Backend (NestJS) Checks
+    - name: Install API Dependencies
+      working-directory: ./apps/api
+      run: npm ci
+
+    - name: Lint API
+      working-directory: ./apps/api
+      run: npm run lint
+
+    - name: Build API
+      working-directory: ./apps/api
+      run: npm run build
+
+    - name: Test API
+      working-directory: ./apps/api
+      run: npm run test
+
+    # 2. Frontend (Next.js) Checks
+    - name: Install Web Dependencies
+      working-directory: ./apps/web
+      run: npm ci
+
+    - name: Lint Web
+      working-directory: ./apps/web
+      run: npm run lint
+
+    - name: Build Web
+      working-directory: ./apps/web
+      run: npm run build
+
+    # Note: E2E Tests (Playwright) typically require the Docker compose DB and both apps running. 
+    # For now, we ensure compile-time and unit-test safety. 
+    # Can be extended in the future to spin up docker-compose and run `npm run test:e2e` in web.
